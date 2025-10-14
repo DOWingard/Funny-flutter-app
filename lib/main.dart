@@ -142,7 +142,7 @@ class _GameWrapperState extends State<GameWrapper> {
                           textStyle: const TextStyle(
                               fontSize: 25, fontWeight: FontWeight.bold),
                         ),
-                        child: const Text('Character Select'),
+                        child: const Text('Low-key Choose A Character'),
                       ),
                     );
                   },

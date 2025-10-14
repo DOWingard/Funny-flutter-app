@@ -1,0 +1,40 @@
+name: side_run
+description: "Tap-to-jump endless runner."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.32.0
+  flame_audio: ^1.2.1
+  cupertino_icons: ^1.0.8
+  simple_parallax: ^0.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/skyline/back.png
+    - assets/images/skyline/buildings.png
+    - assets/images/skyline/front.png
+    - assets/images/          
+    - assets/audio/tap.wav
+    - assets/audio/jump.wav
+    - assets/audio/gg.mp3
+    - assets/audio/soundtrack.mp3
+    - assets/audio/aura.mp3
+
+    - assets/images/platform/pl.png
+    - assets/images/platform/pc.png
+    - assets/images/platform/pr.png
+    - assets/images/platform/pm.png

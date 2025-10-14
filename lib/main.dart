@@ -21,30 +21,24 @@ class GameWrapper extends StatefulWidget {
 
 class _GameWrapperState extends State<GameWrapper> {
   String? selectedCharacter;
-  late SideScrollerGame game;
+  SideScrollerGame? game;
 
   final List<String> characters = List.generate(
     18,
-    (i) => 'assets/images/person${(i + 1).toString().padLeft(3, '0')}.png',
+    (i) => 'person${(i + 1).toString().padLeft(3, '0')}.png',
   );
 
-  @override
-  void initState() {
-    super.initState();
-    _initGame();
-  }
-
-  void _initGame() {
-    game = SideScrollerGame();
+  void _initGame(String characterAsset) {
+    game = SideScrollerGame(characterAsset: characterAsset);
 
     // Remove any lingering GameOver overlay immediately
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      game.overlays.remove('GameOver');
+      game?.overlays.remove('GameOver');
     });
 
     // Show overlay only on game over
-    game.onGameOver = () {
-      game.overlays.add('GameOver');
+    game?.onGameOver = () {
+      game?.overlays.add('GameOver');
     };
   }
 
@@ -57,13 +51,14 @@ class _GameWrapperState extends State<GameWrapper> {
   void _startGameWithCharacter(String character) {
     setState(() {
       selectedCharacter = character;
-      _initGame();
+      _initGame(character);
     });
   }
 
   void _goToCharacterSelect() {
     setState(() {
       selectedCharacter = null;
+      game = null;
     });
   }
 
@@ -94,10 +89,35 @@ class _GameWrapperState extends State<GameWrapper> {
                         decoration: BoxDecoration(
                           color: Colors.grey[900],
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.grey[700]!,
+                            width: 2,
+                          ),
                         ),
-                        child: Image.asset(
-                          characters[index],
-                          fit: BoxFit.contain,
+                        child: Stack(
+                          children: [
+                            // Background square
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey[800],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            // Character sprite on top
+                            Center(
+                              child: Image.asset(
+                                'assets/images/${characters[index]}',
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.person,
+                                    color: Colors.grey[600],
+                                    size: 40,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -105,7 +125,7 @@ class _GameWrapperState extends State<GameWrapper> {
                 ),
               )
             : GameWidget<SideScrollerGame>(
-                game: game,
+                game: game!,
                 overlayBuilderMap: {
                   'GameOver': (context, game) {
                     return Positioned(

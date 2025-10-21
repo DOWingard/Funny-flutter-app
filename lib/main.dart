@@ -61,6 +61,7 @@ class _GameWrapperState extends State<GameWrapper> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       game?.overlays.remove('GameOver');
+      game?.overlays.remove('SkipAd');
     });
 
     game?.onGameOver = () {
@@ -169,12 +170,35 @@ class _GameWrapperState extends State<GameWrapper> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.grey[800],
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 30, vertical: 20),
-                                textStyle: const TextStyle(
-                                    fontSize: 25, fontWeight: FontWeight.bold),
+                                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                                textStyle: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                               ),
                               child: const Text('Low-key Choose A Character'),
+                            ),
+                          );
+                        },
+                        'SkipAd': (context, game) {
+                          return Positioned(
+                            top: 20,
+                            left: 20,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (game is SideScrollerGame) {
+                                  final g = game as SideScrollerGame;
+                                  g.reviveState = ReviveState.none;
+                                  g.hasRevived = true;
+                                  g.gameOver = true;
+                                  g.onGameOver?.call();
+                                  g.overlays.remove('SkipAd');
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red[700],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              child: const Text('Skip Ad / End Game'),
                             ),
                           );
                         },

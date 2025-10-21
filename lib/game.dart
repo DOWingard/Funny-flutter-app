@@ -4,6 +4,10 @@ import 'package:flame/game.dart';
 import 'package:flame/input.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flame/events.dart';
+
+enum ReviveState { none, waitingForAdTap, adWatched, tapToContinue }
 
 class SideScrollerGame extends FlameGame with TapDetector {
   late Player player;
@@ -23,7 +27,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
   final double platformWidth = 120;
   final double platformHeight = 20;
 
-  // Reduced gaps to double spawn density
   final double gapMin = 25;
   final double gapMax = 75;
 
@@ -35,8 +38,16 @@ class SideScrollerGame extends FlameGame with TapDetector {
   late ParallaxLayer frontLayer;
 
   VoidCallback? onGameOver;
-
+  VoidCallback? onShowSkipAdOverlay;
   final String characterAsset;
+
+  RewardedInterstitialAd? _rewardedInterstitialAd;
+  bool _isAdLoading = false;
+
+  TapDownInfo? lastTapDown;
+  ReviveState reviveState = ReviveState.none;
+  bool hasRevived = false;
+  bool adWatched = false;
 
   SideScrollerGame({required this.characterAsset}) {
     player = Player(position: Vector2.zero(), characterAsset: characterAsset);
@@ -69,15 +80,14 @@ class SideScrollerGame extends FlameGame with TapDetector {
     add(frontLayer);
 
     _resetGame();
+    _loadRewardedInterstitialAd();
+
+    onShowSkipAdOverlay ??= () {};
   }
 
   void _resetGame() {
-    for (var p in platforms) {
-      remove(p);
-    }
-    for (var a in auras) {
-      remove(a);
-    }
+    for (var p in platforms) remove(p);
+    for (var a in auras) remove(a);
     if (player.isMounted) remove(player);
 
     platforms.clear();
@@ -87,7 +97,12 @@ class SideScrollerGame extends FlameGame with TapDetector {
     started = false;
     gameOver = false;
 
-    final startPlatform = Platform(position: Vector2(50, 300), size: Vector2(200, platformHeight));
+    hasRevived = false;
+    adWatched = false;
+    reviveState = ReviveState.none;
+
+    final startPlatform =
+        Platform(position: Vector2(50, 300), size: Vector2(200, platformHeight));
     add(startPlatform);
     platforms.add(startPlatform);
 
@@ -98,8 +113,8 @@ class SideScrollerGame extends FlameGame with TapDetector {
     add(player);
 
     double currentX = startPlatform.position.x + startPlatform.size.x;
-    while (currentX < size.x * 2) { // double horizontal width
-      final y = minY + random.nextDouble() * (2 * (maxY - minY)); // double vertical range
+    while (currentX < size.x * 2) {
+      final y = minY + random.nextDouble() * (2 * (maxY - minY));
       final overlap = platformWidth * 0.5;
       final p = Platform(
         position: Vector2(currentX - overlap, y),
@@ -107,8 +122,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
       );
       add(p);
       platforms.add(p);
-
-      // Update currentX with smaller gap to double spawn density
       currentX = p.position.x + p.size.x + gapMin + random.nextDouble() * (gapMax - gapMin);
     }
   }
@@ -117,7 +130,7 @@ class SideScrollerGame extends FlameGame with TapDetector {
   void update(double dt) {
     super.update(dt);
 
-    if (!started || gameOver) return;
+    if (!started || gameOver || reviveState == ReviveState.tapToContinue) return;
 
     speedMultiplier += dt * 0.01;
 
@@ -125,9 +138,7 @@ class SideScrollerGame extends FlameGame with TapDetector {
     buildingsLayer.updatePosition(platformSpeed * dt * speedMultiplier);
     frontLayer.updatePosition(platformSpeed * dt * speedMultiplier);
 
-    for (var p in platforms) {
-      p.position.x -= platformSpeed * dt * speedMultiplier;
-    }
+    for (var p in platforms) p.position.x -= platformSpeed * dt * speedMultiplier;
 
     platforms.removeWhere((p) {
       if (p.position.x + p.size.x < 0) {
@@ -139,8 +150,8 @@ class SideScrollerGame extends FlameGame with TapDetector {
 
     if (platforms.isNotEmpty) {
       double lastX = platforms.last.position.x + platforms.last.size.x;
-      while (lastX < size.x * 2) { // double horizontal width
-        final y = minY + random.nextDouble() * (2 * (maxY - minY)); // double vertical range
+      while (lastX < size.x * 2) {
+        final y = minY + random.nextDouble() * (2 * (maxY - minY));
         final overlap = platformWidth * 0.5;
         final p = Platform(
           position: Vector2(lastX + gapMin + random.nextDouble() * (gapMax - gapMin) - overlap, y),
@@ -162,9 +173,7 @@ class SideScrollerGame extends FlameGame with TapDetector {
       auras.add(aura);
     }
 
-    for (var aura in auras) {
-      aura.position.x -= platformSpeed * dt * speedMultiplier;
-    }
+    for (var aura in auras) aura.position.x -= platformSpeed * dt * speedMultiplier;
 
     auras.removeWhere((a) {
       if (a.position.x + a.size.x < 0) {
@@ -205,11 +214,89 @@ class SideScrollerGame extends FlameGame with TapDetector {
     }
     collected.forEach(auras.remove);
 
-    if (!onPlatform && player.position.y > size.y && !gameOver) {
-      gameOver = true;
-      FlameAudio.play('gg.mp3', volume: 0.5);
-      onGameOver?.call();
+    // --- Death logic ---
+    if (!onPlatform && player.position.y > size.y) {
+      if (!hasRevived && !adWatched && reviveState == ReviveState.none) {
+        reviveState = ReviveState.waitingForAdTap;
+        player.velocity = Vector2.zero();
+        FlameAudio.play('gg.mp3', volume: 0.5);
+        onShowSkipAdOverlay?.call(); // show overlay to allow skipping ad
+      } else if (reviveState == ReviveState.none) {
+        gameOver = true;
+        FlameAudio.play('gg.mp3', volume: 0.5);
+        onGameOver?.call();
+      }
     }
+  }
+
+  void _loadRewardedInterstitialAd() {
+    if (_isAdLoading) return;
+    _isAdLoading = true;
+
+    RewardedInterstitialAd.load(
+      adUnitId: 'ca-app-pub-3940256099942544/5354046379',
+      request: const AdRequest(),
+      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _rewardedInterstitialAd = ad;
+          _isAdLoading = false;
+        },
+        onAdFailedToLoad: (err) {
+          _rewardedInterstitialAd = null;
+          _isAdLoading = false;
+        },
+      ),
+    );
+  }
+
+  void _showRewardedInterstitialAd() {
+    if (_rewardedInterstitialAd == null) return;
+
+    _rewardedInterstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        _loadRewardedInterstitialAd();
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        ad.dispose();
+        _loadRewardedInterstitialAd();
+      },
+    );
+
+    _rewardedInterstitialAd!.show(
+      onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+        _revivePlayer();
+      },
+    );
+
+    _rewardedInterstitialAd = null;
+  }
+
+  void _revivePlayer() {
+    if (platforms.isEmpty) return;
+
+    hasRevived = true;
+    adWatched = true;
+    reviveState = ReviveState.tapToContinue;
+
+    // Always place player on a valid platform
+    final abovePlatforms = platforms.where((p) => p.position.y < player.position.y).toList();
+    Platform target;
+    if (abovePlatforms.isNotEmpty) {
+      target = abovePlatforms.reduce((a, b) => a.position.y < b.position.y ? a : b);
+    } else {
+      target = platforms.reduce((a, b) => a.position.y < b.position.y ? a : b);
+    }
+
+    player.position = Vector2(
+      target.position.x + target.size.x / 2 - player.size.x / 2,
+      target.position.y - player.size.y,
+    );
+
+    player.velocity = Vector2.zero();
+    player.jumpsLeft = 2;
+
+    FlameAudio.play('jump.wav');
   }
 
   String _getAuraRank(int count) {
@@ -228,21 +315,37 @@ class SideScrollerGame extends FlameGame with TapDetector {
     super.render(canvas);
 
     if (!started) {
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = Colors.black.withOpacity(0.7));
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y),
+          Paint()..color = Colors.black.withOpacity(0.7));
       _drawText(canvas, 'Tap to Start', 40);
-    } else if (gameOver) {
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = Colors.black.withOpacity(0.7));
-      _drawText(canvas, 'You Crashed Out', 30, color: Colors.green);
-      if (auraCount == 0) {
-        _drawText(canvas, '\n\n\nAura Farmed: -67', 30, color: Colors.green);
-      } else {
-      _drawText(canvas, '\n\n\nAura Farmed: $auraCount', 30, color: Colors.green);
-      }
-      _drawText(canvas, '\n\n\n\n\n${_getAuraRank(auraCount)}', 45, color: Colors.orange);
-      _drawText(canvas, '\n\n\n\n\n\n\n\n\n\n\n\nTap to Restart', 30, color: Colors.green);
-    } else {
-      _drawText(canvas, 'Aura: $auraCount', 20, center: false, offset: const Offset(10, 10));
+      return;
     }
+
+    if (gameOver) {
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y),
+          Paint()..color = Colors.black.withOpacity(0.7));
+      _drawText(canvas, 'You Crashed Out', 30, color: Colors.green);
+      _drawText(canvas, '\n\n\nAura Farmed: $auraCount', 30, color: Colors.green);
+      _drawText(canvas, '\n\n\n\n\n${_getAuraRank(auraCount)}', 45,
+          color: Colors.orange);
+      return;
+    }
+
+    if (reviveState == ReviveState.waitingForAdTap) {
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y),
+          Paint()..color = Colors.black.withOpacity(0.7));
+      _drawText(canvas, 'Watch Ad to Revive', 35);
+      return;
+    }
+
+    if (reviveState == ReviveState.tapToContinue) {
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y),
+          Paint()..color = Colors.black.withOpacity(0.7));
+      _drawText(canvas, 'Tap to Continue', 35);
+      return;
+    }
+
+    _drawText(canvas, 'Aura: $auraCount', 20, center: false, offset: const Offset(10, 10));
   }
 
   void _drawText(Canvas canvas, String text, double fontSize,
@@ -250,7 +353,8 @@ class SideScrollerGame extends FlameGame with TapDetector {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(color: color, fontSize: fontSize, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            color: color, fontSize: fontSize, fontWeight: FontWeight.bold),
       ),
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
@@ -267,25 +371,35 @@ class SideScrollerGame extends FlameGame with TapDetector {
   void onTap() {
     if (!started) {
       started = true;
-      overlays.remove('GameOver');
       FlameAudio.bgm.stop();
       FlameAudio.bgm.play('soundtrack.mp3', volume: 0.9);
       return;
     }
 
-    if (gameOver) {
-      _resetGame();
+    if (reviveState == ReviveState.waitingForAdTap) {
+      _showRewardedInterstitialAd();
       return;
     }
 
-    if (player.jumpsLeft > 0) {
+    if (reviveState == ReviveState.tapToContinue) {
+      reviveState = ReviveState.none;
+      return;
+    }
+
+    if (!gameOver && reviveState == ReviveState.none && player.jumpsLeft > 0) {
       player.velocity.y = -400;
       player.jumpsLeft -= 1;
       FlameAudio.play('jump.wav', volume: 0.5);
     }
   }
+
+  @override
+  void onTapDown(TapDownInfo info) {
+    lastTapDown = info;
+  }
 }
 
+// --- Player ---
 class Player extends PositionComponent {
   Vector2 velocity = Vector2.zero();
   int jumpsLeft = 2;
@@ -308,6 +422,7 @@ class Player extends PositionComponent {
   }
 }
 
+// --- Platform ---
 class Platform extends PositionComponent {
   late Sprite tile;
 
@@ -327,16 +442,23 @@ class Platform extends PositionComponent {
   }
 }
 
+// --- Aura ---
 class Aura extends PositionComponent {
-  Aura({required Vector2 position}) : super(position: position, size: Vector2(20, 20), anchor: Anchor.topLeft);
+  Aura({required Vector2 position})
+      : super(position: position, size: Vector2(20, 20), anchor: Anchor.topLeft);
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    canvas.drawCircle(Offset(size.x / 2, size.y / 2), size.x / 2, Paint()..color = Colors.green);
+    canvas.drawCircle(
+      Offset(size.x / 2, size.y / 2),
+      size.x / 2,
+      Paint()..color = Colors.green,
+    );
   }
 }
 
+// --- Parallax Layer ---
 class ParallaxLayer extends Component with HasGameRef<FlameGame> {
   final Sprite sprite;
   final double speedMultiplier;
@@ -361,7 +483,11 @@ class ParallaxLayer extends Component with HasGameRef<FlameGame> {
   void render(Canvas canvas) {
     super.render(canvas);
     for (int i = -1; i <= 1; i++) {
-      sprite.render(canvas, position: Vector2(offsetX + i * sizeOnScreen.x, 0), size: sizeOnScreen);
+      sprite.render(
+        canvas,
+        position: Vector2(offsetX + i * sizeOnScreen.x, 0),
+        size: sizeOnScreen,
+      );
     }
   }
 }

@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flame: ^1.32.0
+  flame: ^1.5.0
   flame_audio: ^2.11.10
   cupertino_icons: ^1.0.8
   simple_parallax: ^0.1.0

@@ -11,14 +11,16 @@ dependencies:
   flutter:
     sdk: flutter
   flame: ^1.32.0
-  flame_audio: ^1.2.1
+  flame_audio: ^2.11.10
   cupertino_icons: ^1.0.8
   simple_parallax: ^0.1.0
+  #google_mobile_ads: ^6.0.0
+  audioplayers: ^6.5.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true

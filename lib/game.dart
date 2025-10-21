@@ -22,25 +22,23 @@ class SideScrollerGame extends FlameGame with TapDetector {
   final double maxY = 400;
   final double platformWidth = 120;
   final double platformHeight = 20;
-  final double gapMin = 50;
-  final double gapMax = 150;
+
+  // Reduced gaps to double spawn density
+  final double gapMin = 25;
+  final double gapMax = 75;
 
   double auraSpawnTimer = 0.0;
   final double auraSpawnInterval = 1.5;
 
-  // --- Parallax layers ---
   late ParallaxLayer backLayer;
   late ParallaxLayer buildingsLayer;
   late ParallaxLayer frontLayer;
 
-  // --- Callback for game over ---
   VoidCallback? onGameOver;
 
-  // --- Selected character asset ---
   final String characterAsset;
 
   SideScrollerGame({required this.characterAsset}) {
-    // Initialize a temporary placeholder to avoid "not initialized" errors
     player = Player(position: Vector2.zero(), characterAsset: characterAsset);
   }
 
@@ -48,7 +46,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
   Future<void> onLoad() async {
     super.onLoad();
 
-    // --- Preload sounds ---
     await FlameAudio.audioCache.loadAll([
       'tap.wav',
       'jump.wav',
@@ -59,7 +56,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
 
     FlameAudio.bgm.initialize();
 
-    // --- Load parallax layers ---
     final back = await loadSprite('skyline/back.png');
     final buildings = await loadSprite('skyline/buildings.png');
     final front = await loadSprite('skyline/front.png');
@@ -72,14 +68,16 @@ class SideScrollerGame extends FlameGame with TapDetector {
     add(buildingsLayer);
     add(frontLayer);
 
-    // --- Setup initial platforms and player ---
     _resetGame();
   }
 
   void _resetGame() {
-    // Remove old components
-    for (var p in platforms) remove(p);
-    for (var a in auras) remove(a);
+    for (var p in platforms) {
+      remove(p);
+    }
+    for (var a in auras) {
+      remove(a);
+    }
     if (player.isMounted) remove(player);
 
     platforms.clear();
@@ -89,25 +87,28 @@ class SideScrollerGame extends FlameGame with TapDetector {
     started = false;
     gameOver = false;
 
-    // First platform
     final startPlatform = Platform(position: Vector2(50, 300), size: Vector2(200, platformHeight));
     add(startPlatform);
     platforms.add(startPlatform);
 
-    // Player
     player = Player(
       position: Vector2(startPlatform.position.x + 50, startPlatform.position.y - 50),
       characterAsset: characterAsset,
     );
     add(player);
 
-    // Additional platforms
     double currentX = startPlatform.position.x + startPlatform.size.x;
-    while (currentX < size.x * 2) {
-      final y = minY + random.nextDouble() * (maxY - minY);
-      final p = Platform(position: Vector2(currentX, y), size: Vector2(platformWidth, platformHeight));
+    while (currentX < size.x * 2) { // double horizontal width
+      final y = minY + random.nextDouble() * (2 * (maxY - minY)); // double vertical range
+      final overlap = platformWidth * 0.5;
+      final p = Platform(
+        position: Vector2(currentX - overlap, y),
+        size: Vector2(platformWidth, platformHeight),
+      );
       add(p);
       platforms.add(p);
+
+      // Update currentX with smaller gap to double spawn density
       currentX = p.position.x + p.size.x + gapMin + random.nextDouble() * (gapMax - gapMin);
     }
   }
@@ -124,10 +125,10 @@ class SideScrollerGame extends FlameGame with TapDetector {
     buildingsLayer.updatePosition(platformSpeed * dt * speedMultiplier);
     frontLayer.updatePosition(platformSpeed * dt * speedMultiplier);
 
-    // Move platforms
-    for (var p in platforms) p.position.x -= platformSpeed * dt * speedMultiplier;
+    for (var p in platforms) {
+      p.position.x -= platformSpeed * dt * speedMultiplier;
+    }
 
-    // Remove offscreen platforms
     platforms.removeWhere((p) {
       if (p.position.x + p.size.x < 0) {
         remove(p);
@@ -136,13 +137,13 @@ class SideScrollerGame extends FlameGame with TapDetector {
       return false;
     });
 
-    // Generate new platforms
     if (platforms.isNotEmpty) {
       double lastX = platforms.last.position.x + platforms.last.size.x;
-      while (lastX < size.x + 200) {
-        final y = minY + random.nextDouble() * (maxY - minY);
+      while (lastX < size.x * 2) { // double horizontal width
+        final y = minY + random.nextDouble() * (2 * (maxY - minY)); // double vertical range
+        final overlap = platformWidth * 0.5;
         final p = Platform(
-          position: Vector2(lastX + gapMin + random.nextDouble() * (gapMax - gapMin), y),
+          position: Vector2(lastX + gapMin + random.nextDouble() * (gapMax - gapMin) - overlap, y),
           size: Vector2(platformWidth, platformHeight),
         );
         add(p);
@@ -151,7 +152,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
       }
     }
 
-    // Spawn auras
     auraSpawnTimer += dt;
     if (auraSpawnTimer >= auraSpawnInterval) {
       auraSpawnTimer = 0;
@@ -162,8 +162,9 @@ class SideScrollerGame extends FlameGame with TapDetector {
       auras.add(aura);
     }
 
-    // Move auras
-    for (var aura in auras) aura.position.x -= platformSpeed * dt * speedMultiplier;
+    for (var aura in auras) {
+      aura.position.x -= platformSpeed * dt * speedMultiplier;
+    }
 
     auras.removeWhere((a) {
       if (a.position.x + a.size.x < 0) {
@@ -173,7 +174,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
       return false;
     });
 
-    // --- Collision ---
     bool onPlatform = false;
     final playerNext = player.toRect().translate(0, player.velocity.y * dt);
     for (var p in platforms) {
@@ -194,7 +194,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
     if (!onPlatform) player.velocity.y += 800 * dt;
     player.position += player.velocity * dt;
 
-    // Aura collection
     List<Aura> collected = [];
     for (var aura in auras) {
       if (player.toRect().overlaps(aura.toRect())) {
@@ -206,7 +205,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
     }
     collected.forEach(auras.remove);
 
-    // Game over
     if (!onPlatform && player.position.y > size.y && !gameOver) {
       gameOver = true;
       FlameAudio.play('gg.mp3', volume: 0.5);
@@ -215,16 +213,15 @@ class SideScrollerGame extends FlameGame with TapDetector {
   }
 
   String _getAuraRank(int count) {
-  if (count >= 100) return 'RIZZ MASTER';
-  if (count >= 75) return 'Fanum Tax Collector';
-  if (count >= 50) return 'Ohio Gyatt Goblin';
-  if (count >= 35) return 'W Rizzler';
-  if (count >= 20) return 'Skibidi gamer';
-  if (count >= 10) return 'Mid Sigma';
-  if (count >= 3) return 'The Huzzless';
-  return 'Chat, check this Negative Aura';
+    if (count >= 100) return 'RIZZ MASTER';
+    if (count >= 75) return 'Fanum Tax Collector';
+    if (count >= 50) return 'Ohio Gyatt Goblin';
+    if (count >= 35) return 'W Rizzler';
+    if (count >= 20) return 'Skibidi gamer';
+    if (count >= 10) return 'Mid Sigma';
+    if (count >= 3) return 'The Huzzless';
+    return 'Chat, check this Negative Aura';
   }
-
 
   @override
   void render(Canvas canvas) {
@@ -285,7 +282,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
   }
 }
 
-// --- Player ---
 class Player extends PositionComponent {
   Vector2 velocity = Vector2.zero();
   int jumpsLeft = 2;
@@ -308,11 +304,10 @@ class Player extends PositionComponent {
   }
 }
 
-// --- Platform ---
 class Platform extends PositionComponent {
   late Sprite tile;
 
-  Platform({required Vector2 position, required Vector2 size}) 
+  Platform({required Vector2 position, required Vector2 size})
       : super(position: position, size: size, anchor: Anchor.topLeft);
 
   @override
@@ -328,22 +323,16 @@ class Platform extends PositionComponent {
   }
 }
 
-// --- Aura ---
 class Aura extends PositionComponent {
-  Aura({required Vector2 position}) 
-      : super(position: position, size: Vector2(20, 20), anchor: Anchor.topLeft);
+  Aura({required Vector2 position}) : super(position: position, size: Vector2(20, 20), anchor: Anchor.topLeft);
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    canvas.drawCircle(
-        Offset(size.x / 2, size.y / 2),
-        size.x / 2,
-        Paint()..color = Colors.purple);
+    canvas.drawCircle(Offset(size.x / 2, size.y / 2), size.x / 2, Paint()..color = Colors.green);
   }
 }
 
-// --- Parallax ---
 class ParallaxLayer extends Component with HasGameRef<FlameGame> {
   final Sprite sprite;
   final double speedMultiplier;
@@ -368,11 +357,7 @@ class ParallaxLayer extends Component with HasGameRef<FlameGame> {
   void render(Canvas canvas) {
     super.render(canvas);
     for (int i = -1; i <= 1; i++) {
-      sprite.render(
-        canvas,
-        position: Vector2(offsetX + i * sizeOnScreen.x, 0),
-        size: sizeOnScreen,
-      );
+      sprite.render(canvas, position: Vector2(offsetX + i * sizeOnScreen.x, 0), size: sizeOnScreen);
     }
   }
 }

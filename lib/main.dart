@@ -3,8 +3,11 @@ import 'package:flame/game.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'game.dart'; // Ensure this points to your SideScrollerGame file
 
+// ADS
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  //await MobileAds.instance.initialize();
 
   // Preload tap sound so it plays instantly
   await FlameAudio.audioCache.load('tap.wav');

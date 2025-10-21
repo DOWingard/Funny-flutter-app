@@ -1,4 +1,4 @@
-# best_of_bibi
+# rizz_runner
 
 A new Flutter project.
 

@@ -219,7 +219,7 @@ class SideScrollerGame extends FlameGame with TapDetector {
     if (count >= 35) return 'W Rizzler';
     if (count >= 20) return 'Skibidi gamer';
     if (count >= 10) return 'Mid Sigma';
-    if (count >= 3) return 'The Huzzless';
+    if (count >= 1) return 'The Huzzless';
     return 'Chat, check this Negative Aura';
   }
 
@@ -233,9 +233,13 @@ class SideScrollerGame extends FlameGame with TapDetector {
     } else if (gameOver) {
       canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = Colors.black.withOpacity(0.7));
       _drawText(canvas, 'You Crashed Out', 30, color: Colors.green);
+      if (auraCount == 0) {
+        _drawText(canvas, '\n\n\nAura Farmed: -67', 30, color: Colors.green);
+      } else {
       _drawText(canvas, '\n\n\nAura Farmed: $auraCount', 30, color: Colors.green);
-      _drawText(canvas, '\n\n\n\n${_getAuraRank(auraCount)}', 45, color: Colors.orange);
-      _drawText(canvas, '\n\n\n\n\n\n\n\n\n\nTap to Restart', 30, color: Colors.green);
+      }
+      _drawText(canvas, '\n\n\n\n\n${_getAuraRank(auraCount)}', 45, color: Colors.orange);
+      _drawText(canvas, '\n\n\n\n\n\n\n\n\n\n\n\nTap to Restart', 30, color: Colors.green);
     } else {
       _drawText(canvas, 'Aura: $auraCount', 20, center: false, offset: const Offset(10, 10));
     }

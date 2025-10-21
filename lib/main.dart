@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'game.dart'; // Ensure this points to your SideScrollerGame file
-
-// ADS
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // ads
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //await MobileAds.instance.initialize();
+  await MobileAds.instance.initialize();
 
   // Preload tap sound so it plays instantly
   await FlameAudio.audioCache.load('tap.wav');
@@ -31,24 +30,47 @@ class _GameWrapperState extends State<GameWrapper> {
     (i) => 'person${(i + 1).toString().padLeft(3, '0')}.png',
   );
 
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // test ad ID
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          setState(() {});
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          debugPrint('BannerAd failed to load: $error');
+        },
+      ),
+    );
+    _bannerAd?.load();
+  }
+
   void _initGame(String characterAsset) {
     game = SideScrollerGame(characterAsset: characterAsset);
 
-    // Remove any lingering GameOver overlay immediately
     WidgetsBinding.instance.addPostFrameCallback((_) {
       game?.overlays.remove('GameOver');
     });
 
-    // Show overlay only on game over
     game?.onGameOver = () {
       game?.overlays.add('GameOver');
     };
   }
 
-  /// Wrapper to play tap sound and then execute action
   void _playTapAndRun(VoidCallback action) {
-    FlameAudio.play('tap.wav'); // Play the tap sound
-    action(); // Execute the intended action
+    FlameAudio.play('tap.wav');
+    action();
   }
 
   void _startGameWithCharacter(String character) {
@@ -66,93 +88,108 @@ class _GameWrapperState extends State<GameWrapper> {
   }
 
   @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         backgroundColor: Colors.black,
-        body: selectedCharacter == null
-            ? Center(
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.all(20),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 6,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: characters.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () => _playTapAndRun(
-                          () => _startGameWithCharacter(characters[index])),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[900],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.grey[700]!,
-                            width: 2,
-                          ),
+        body: Column(
+          children: [
+            Expanded(
+              child: selectedCharacter == null
+                  ? Center(
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.all(20),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 6,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 1,
                         ),
-                        child: Stack(
-                          children: [
-                            // Background square
-                            Container(
+                        itemCount: characters.length,
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                            onTap: () => _playTapAndRun(
+                                () => _startGameWithCharacter(characters[index])),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: Colors.grey[800],
-                                borderRadius: BorderRadius.circular(4),
+                                color: Colors.grey[900],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.grey[700]!,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[800],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  Center(
+                                    child: Image.asset(
+                                      'assets/images/${characters[index]}',
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Icon(
+                                          Icons.person,
+                                          color: Colors.grey[600],
+                                          size: 40,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            // Character sprite on top
-                            Center(
-                              child: Image.asset(
-                                'assets/images/${characters[index]}',
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.person,
-                                    color: Colors.grey[600],
-                                    size: 40,
-                                  );
-                                },
+                          );
+                        },
+                      ),
+                    )
+                  : GameWidget<SideScrollerGame>(
+                      game: game!,
+                      overlayBuilderMap: {
+                        'GameOver': (context, game) {
+                          return Positioned(
+                            top: 20,
+                            right: 20,
+                            child: ElevatedButton(
+                              onPressed: () => _playTapAndRun(_goToCharacterSelect),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey[800],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 30, vertical: 20),
+                                textStyle: const TextStyle(
+                                    fontSize: 25, fontWeight: FontWeight.bold),
                               ),
+                              child: const Text('Low-key Choose A Character'),
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              )
-            : GameWidget<SideScrollerGame>(
-                game: game!,
-                overlayBuilderMap: {
-                  'GameOver': (context, game) {
-                    return Positioned(
-                      top: 20,
-                      right: 20,
-                      child: ElevatedButton(
-                        onPressed: () =>
-                            _playTapAndRun(_goToCharacterSelect),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[800],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 30, vertical: 20),
-                          textStyle: const TextStyle(
-                              fontSize: 25, fontWeight: FontWeight.bold),
-                        ),
-                        child: const Text('Low-key Choose A Character'),
-                      ),
-                    );
-                  },
-                },
-                // Ensure overlay is empty during gameplay
-                initialActiveOverlays: const [],
+                          );
+                        },
+                      },
+                      initialActiveOverlays: const [],
+                    ),
+            ),
+            if (_bannerAd != null)
+              SizedBox(
+                width: _bannerAd!.size.width.toDouble(),
+                height: _bannerAd!.size.height.toDouble(),
+                child: AdWidget(ad: _bannerAd!),
               ),
+          ],
+        ),
       ),
     );
   }

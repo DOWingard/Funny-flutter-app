@@ -64,6 +64,7 @@ class _GameWrapperState extends State<GameWrapper> {
       game?.overlays.remove('SkipAd');
     });
 
+    // Game over callback to show the overlay
     game?.onGameOver = () {
       game?.overlays.add('GameOver');
     };
@@ -104,69 +105,88 @@ class _GameWrapperState extends State<GameWrapper> {
           children: [
             Expanded(
               child: selectedCharacter == null
-                  ? Center(
-                      child: GridView.builder(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.all(20),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 6,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: 1,
+                  ? Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image.asset(
+                            'assets/images/welcome.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(color: Colors.black);
+                            },
+                          ),
                         ),
-                        itemCount: characters.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () => _playTapAndRun(
-                                () => _startGameWithCharacter(characters[index])),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[900],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.grey[700]!,
-                                  width: 2,
+                        Column(
+                          children: [
+                            const Spacer(flex: 1),
+                            const SizedBox(height: 100),
+                            Expanded(
+                              flex: 1,
+                              child: GridView.builder(
+                                padding: const EdgeInsets.all(20),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 6,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: 1,
                                 ),
-                              ),
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[800],
-                                      borderRadius: BorderRadius.circular(4),
+                                itemCount: characters.length,
+                                itemBuilder: (context, index) {
+                                  return GestureDetector(
+                                    onTap: () => _playTapAndRun(
+                                        () => _startGameWithCharacter(characters[index])),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[900]?.withOpacity(0.7),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.grey[700]!,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[800]?.withOpacity(0.5),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                          ),
+                                          Center(
+                                            child: Image.asset(
+                                              'assets/images/${characters[index]}',
+                                              fit: BoxFit.contain,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Icon(
+                                                  Icons.person,
+                                                  color: Colors.grey[600],
+                                                  size: 40,
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Center(
-                                    child: Image.asset(
-                                      'assets/images/${characters[index]}',
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Icon(
-                                          Icons.person,
-                                          color: Colors.grey[600],
-                                          size: 40,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
+                                  );
+                                },
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        ),
+                      ],
                     )
                   : GameWidget<SideScrollerGame>(
                       game: game!,
                       overlayBuilderMap: {
+                        // Game Over overlay with "Choose a Character" button
                         'GameOver': (context, game) {
                           return Positioned(
                             top: 20,
                             right: 20,
                             child: ElevatedButton(
-                              onPressed: () => _playTapAndRun(_goToCharacterSelect),
+                              onPressed: _goToCharacterSelect,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.grey[800],
                                 foregroundColor: Colors.white,
@@ -177,6 +197,7 @@ class _GameWrapperState extends State<GameWrapper> {
                             ),
                           );
                         },
+                        // SkipAd overlay during gameplay
                         'SkipAd': (context, game) {
                           return Positioned(
                             top: 20,

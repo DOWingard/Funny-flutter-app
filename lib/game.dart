@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flame/events.dart';
 
-enum ReviveState { none, waitingForAdTap, adWatched, tapToContinue }
+enum ReviveState { none, waitingForAdTap, tapToContinue }
 
 class SideScrollerGame extends FlameGame with TapDetector {
   late Player player;
@@ -86,9 +86,10 @@ class SideScrollerGame extends FlameGame with TapDetector {
   }
 
   void _resetGame() {
-    for (var p in platforms) {remove(p);}
-    for (var a in auras) {remove(a);}
-    if (player.isMounted) {remove(player);}
+    // Clear everything
+    for (var p in platforms) remove(p);
+    for (var a in auras) remove(a);
+    if (player.isMounted) remove(player);
     _removeAllButtons();
     platforms.clear();
     auras.clear();
@@ -101,17 +102,25 @@ class SideScrollerGame extends FlameGame with TapDetector {
     adWatched = false;
     reviveState = ReviveState.none;
 
-    final startPlatform =
-        Platform(position: Vector2(50, 300), size: Vector2(200, platformHeight));
+    // --- STARTING PLATFORM ---
+    final startPlatform = Platform(
+      position: Vector2(50, 300), // same original X
+      size: Vector2(200, platformHeight),
+    );
     add(startPlatform);
     platforms.add(startPlatform);
 
+    // --- PLAYER SPAWN ---
     player = Player(
-      position: Vector2(startPlatform.position.x + 50, startPlatform.position.y - 50),
+      position: Vector2(
+        startPlatform.position.x + 50, // same offset as original
+        startPlatform.position.y - 50,
+      ),
       characterAsset: characterAsset,
     );
     add(player);
 
+    // --- GENERATE ADDITIONAL PLATFORMS ---
     double currentX = startPlatform.position.x + startPlatform.size.x;
     while (currentX < size.x * 2) {
       final y = minY + random.nextDouble() * (2 * (maxY - minY));
@@ -126,6 +135,7 @@ class SideScrollerGame extends FlameGame with TapDetector {
     }
   }
 
+
   void _restartRun() {
     _removeAllButtons();
     _resetGame();
@@ -138,7 +148,10 @@ class SideScrollerGame extends FlameGame with TapDetector {
   void update(double dt) {
     super.update(dt);
 
-    if (!started || gameOver || reviveState == ReviveState.tapToContinue) return;
+    // --- PAUSE GAME WHEN REVIVE OR GAME NOT STARTED ---
+    if (!started || gameOver || reviveState == ReviveState.waitingForAdTap || reviveState == ReviveState.tapToContinue) {
+      return;
+    }
 
     speedMultiplier += dt * 0.01;
 
@@ -224,11 +237,11 @@ class SideScrollerGame extends FlameGame with TapDetector {
 
     // --- Death logic ---
     if (!onPlatform && player.position.y > size.y) {
-      if (!hasRevived && !adWatched && reviveState == ReviveState.none) {
+      if (!hasRevived && reviveState == ReviveState.none) {
         reviveState = ReviveState.waitingForAdTap;
         player.velocity = Vector2.zero();
         FlameAudio.play('gg.mp3', volume: 0.5);
-        onShowSkipAdOverlay?.call(); // show overlay to allow skipping ad
+        onShowSkipAdOverlay?.call();
       } else if (reviveState == ReviveState.none) {
         gameOver = true;
         FlameAudio.play('gg.mp3', volume: 0.5);
@@ -285,27 +298,26 @@ class SideScrollerGame extends FlameGame with TapDetector {
     adWatched = true;
     reviveState = ReviveState.tapToContinue;
 
-    final double platformY = (player.position.y - 400).clamp(50, size.y - 400);
-    final double platformX = (player.position.x + 50).clamp(50, size.x - platformWidth - 50);
+    final safePlatformX = 50.0; // double
+    final safePlatformY = (player.position.y - 200.0).clamp(minY, maxY);
 
     final newPlatform = Platform(
-      position: Vector2(platformX, platformY),
+      position: Vector2(safePlatformX, safePlatformY),
       size: Vector2(platformWidth, platformHeight),
     );
-
     add(newPlatform);
     platforms.add(newPlatform);
 
     player.position = Vector2(
-      newPlatform.position.x + newPlatform.size.x / 2 - player.size.x / 2,
+      newPlatform.position.x + 50.0, // double
       newPlatform.position.y - player.size.y,
     );
-
     player.velocity = Vector2.zero();
     player.jumpsLeft = 2;
 
     FlameAudio.play('jump.wav');
   }
+
 
   String _getAuraRank(int count) {
     if (count >= 100) return 'RIZZ MASTER';
@@ -326,7 +338,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
       canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y),
           Paint()..color = Colors.black.withOpacity(0.7));
       _drawText(canvas, 'Tap to Start', 40);
-      // Removed "Choose Character" button entirely
       return;
     }
 
@@ -335,15 +346,12 @@ class SideScrollerGame extends FlameGame with TapDetector {
         Rect.fromLTWH(0, 0, size.x, size.y),
         Paint()..color = Colors.black.withOpacity(0.7),
       );
-
       _drawText(canvas, 'You Crashed Out', 30, color: Colors.green);
-
       if (auraCount == 0) {
-        _drawText(canvas, '\n\n\nAura Farmed: -67', 30, color: Colors.green);
+        _drawText(canvas, '\n\n\nAura Farmed: -67...', 30, color: Colors.green);
       } else {
         _drawText(canvas, '\n\n\nAura Farmed: $auraCount', 30, color: Colors.green);
       }
-      
       _drawText(canvas, '\n\n\n\n\n${_getAuraRank(auraCount)}', 45, color: Colors.orange);
 
       final buttonWidth = 250.0;
@@ -354,10 +362,8 @@ class SideScrollerGame extends FlameGame with TapDetector {
         buttonWidth,
         buttonHeight,
       );
-
       final paint = Paint()..color = Colors.grey[800]!;
       canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(8)), paint);
-
       final tp = TextPainter(
         text: const TextSpan(
           text: 'Restart',
@@ -370,34 +376,70 @@ class SideScrollerGame extends FlameGame with TapDetector {
         textAlign: TextAlign.center,
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: buttonWidth);
-
       final textOffset = Offset(
         rect.left + (buttonWidth - tp.width) / 2,
         rect.top + (buttonHeight - tp.height) / 2,
       );
-
       tp.paint(canvas, textOffset);
       return;
     }
 
     if (reviveState == ReviveState.waitingForAdTap) {
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y),
+      canvas.drawRect(
+          Rect.fromLTWH(0, 0, size.x, size.y),
           Paint()..color = Colors.black.withOpacity(0.7));
-      _drawText(canvas, 'Watch Ad to Revive', 35);
-      _drawText(canvas, '\n\n\nOr Tap Bottom Right to Give Up', 20,
-          color: Colors.redAccent);
-      return;
+
+      // Draw two buttons
+      final buttonWidth = 250.0;
+      final buttonHeight = 60.0;
+      final spacing = 20.0;
+      final topY = size.y / 2 - buttonHeight - spacing / 2;
+
+      // Watch Ad button (green)
+      final watchAdRect = Rect.fromLTWH(
+          size.x / 2 - buttonWidth / 2, topY, buttonWidth, buttonHeight);
+      final watchPaint = Paint()..color = Colors.green;
+      canvas.drawRRect(RRect.fromRectAndRadius(watchAdRect, const Radius.circular(8)), watchPaint);
+      _drawButtonText(canvas, 'Watch Ad to Revive', watchAdRect);
+
+      // Give Up button (red)
+      final giveUpRect = Rect.fromLTWH(
+          size.x / 2 - buttonWidth / 2, topY + buttonHeight + spacing, buttonWidth, buttonHeight);
+      final giveUpPaint = Paint()..color = Colors.red;
+      canvas.drawRRect(RRect.fromRectAndRadius(giveUpRect, const Radius.circular(8)), giveUpPaint);
+      _drawButtonText(canvas, 'Game Over', giveUpRect);
     }
 
     if (reviveState == ReviveState.tapToContinue) {
       canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y),
           Paint()..color = Colors.black.withOpacity(0.7));
       _drawText(canvas, 'Tap to Continue', 35);
-      _removeAllButtons();
       return;
     }
 
     _drawText(canvas, 'Aura: $auraCount', 20, center: false, offset: const Offset(10, 40));
+    }
+
+
+    void _drawButtonText(Canvas canvas, String text, Rect rect) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 25,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: rect.width);
+
+    final textOffset = Offset(
+      rect.left + (rect.width - tp.width) / 2,
+      rect.top + (rect.height - tp.height) / 2,
+    );
+    tp.paint(canvas, textOffset);
   }
 
   void _drawText(Canvas canvas, String text, double fontSize,
@@ -405,29 +447,20 @@ class SideScrollerGame extends FlameGame with TapDetector {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(
-            color: color, fontSize: fontSize, fontWeight: FontWeight.bold),
+        style: TextStyle(color: color, fontSize: fontSize, fontWeight: FontWeight.bold),
       ),
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: size.x);
-
     final position = center
         ? Offset(size.x / 2 - tp.width / 2, size.y / 2 - tp.height / 2)
         : (offset ?? const Offset(0, 0));
-
     tp.paint(canvas, position);
   }
 
-
   void _removeAllButtons() {
-  // Remove all overlays
-  overlays.clear();
-  // Reset any game state that triggers on-screen buttons
-  reviveState = ReviveState.none;
-  gameOver = false;
-}
-
+    overlays.clear();
+  }
 
   @override
   void onTap() {
@@ -444,7 +477,7 @@ class SideScrollerGame extends FlameGame with TapDetector {
     }
 
     if (reviveState == ReviveState.tapToContinue) {
-      reviveState = ReviveState.none;
+      reviveState = ReviveState.none; // resume game
       return;
     }
 
@@ -461,8 +494,20 @@ class SideScrollerGame extends FlameGame with TapDetector {
     final tap = info.eventPosition.global;
 
     if (reviveState == ReviveState.waitingForAdTap) {
-      final inBottomRight = tap.x > size.x * 0.6 && tap.y > size.y * 0.7;
-      if (inBottomRight) {
+      final tap = info.eventPosition.global;
+
+      final buttonWidth = 250.0;
+      final buttonHeight = 60.0;
+      final spacing = 20.0;
+      final topY = size.y / 2 - buttonHeight - spacing / 2;
+
+      final watchAdRect = Rect.fromLTWH(size.x / 2 - buttonWidth / 2, topY, buttonWidth, buttonHeight);
+      final giveUpRect = Rect.fromLTWH(size.x / 2 - buttonWidth / 2, topY + buttonHeight + spacing, buttonWidth, buttonHeight);
+
+      if (watchAdRect.contains(Offset(tap.x, tap.y))) {
+        _showRewardedInterstitialAd();
+        return;
+      } else if (giveUpRect.contains(Offset(tap.x, tap.y))) {
         reviveState = ReviveState.none;
         hasRevived = true;
         gameOver = true;
@@ -470,7 +515,6 @@ class SideScrollerGame extends FlameGame with TapDetector {
         return;
       }
     }
-
     if (gameOver) {
       final buttonWidth = 250.0;
       final buttonHeight = 60.0;

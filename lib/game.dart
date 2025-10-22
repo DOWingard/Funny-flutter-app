@@ -242,7 +242,7 @@ class SideScrollerGame extends FlameGame with TapDetector {
     _isAdLoading = true;
 
     RewardedInterstitialAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/5354046379',
+      adUnitId: 'ca-app-pub-7965890105107738/8335514577',//'ca-app-pub-3940256099942544/5354046379', // testID
       request: const AdRequest(),
       rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
         onAdLoaded: (ad) {

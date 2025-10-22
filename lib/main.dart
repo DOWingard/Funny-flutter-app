@@ -40,7 +40,7 @@ class _GameWrapperState extends State<GameWrapper> {
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // test ad ID
+      adUnitId: 'ca-app-pub-7965890105107738/9368113383',// 'ca-app-pub-3940256099942544/6300978111', // test ad ID
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(

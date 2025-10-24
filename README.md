@@ -1,16 +1,11 @@
-# rizz_runner
+# Rizz Runner 67
 
-A new Flutter project.
+Built in Flutter using Android SDK to simulate mobile testing
 
-## Getting Started
+The game your friend's kid won't stop joking about
 
-This project is a starting point for a Flutter application.
+![Welcome](resultImages/rr3.png)
+![Start](resultImages/rr1.png)
+![Game Over](resultImages/rr2.png)
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+And yes, my [.gitignore](.gitignore) does prevent the actual game logic from pushing because this will be launched soon

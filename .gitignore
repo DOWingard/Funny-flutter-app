@@ -18,8 +18,8 @@ migrate_working_dir/
 *.iws
 .idea/
 
-lib/game.dart
-lib/main.dart
+/lib/game.dart
+/lib/main.dart
 
 
 

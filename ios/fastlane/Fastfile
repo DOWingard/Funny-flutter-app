@@ -3,8 +3,6 @@ default_platform(:ios)
 platform :ios do
   desc "Push a new beta build to TestFlight"
   lane :beta do
-    setup_ci if ENV['CI']
-
     # Ensure we have the latest certificates and profiles
     # match(type: "appstore", readonly: is_ci) 
 

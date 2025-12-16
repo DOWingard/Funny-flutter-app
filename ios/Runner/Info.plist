@@ -48,6 +48,9 @@
 
 	<!-- Google Mobile Ads -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~3347511713</string> <!-- Test App ID -->
+	<string>ca-app-pub-7965890105107738~4054396627</string> <!-- Production App ID -->
+	
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This identifier will be used to deliver personalized ads to you.</string>
 </dict>
 </plist>

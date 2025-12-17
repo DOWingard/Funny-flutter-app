@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:flame_audio/flame_audio.dart';
-import 'game.dart'; // Ensure this points to your SideScrollerGame file
+import 'youcantcopymygame.dart'; // Ensure this points to your SideScrollerGame file
 import 'package:google_mobile_ads/google_mobile_ads.dart'; // ads
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -24,6 +24,8 @@ class GameWrapper extends StatefulWidget {
 }
 
 class _GameWrapperState extends State<GameWrapper> {
-  
-  // Can't just post all my secrets on main (:
+  @override
+  Widget build(BuildContext context) {
+    return GameWidget(game: SideScrollerGame());
+  }
 }

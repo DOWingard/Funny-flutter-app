@@ -1,5 +1,5 @@
-app_identifier("com.example.rizzRunner67") # Replace with your app identifier
-apple_id("user@example.com") # Replace with your Apple ID
+app_identifier("com.anonymous.PromoteMe")
+apple_id("derekwingard@gmail.com")
 
-itc_team_id("12345678") # Optional: iTunes Connect Team ID
-team_id("ABCDEFGHIJ") # Optional: Developer Portal Team ID
+itc_team_id("D9K4L9NH2Y")
+team_id("D9K4L9NH2Y")

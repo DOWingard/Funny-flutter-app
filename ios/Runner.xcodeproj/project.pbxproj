@@ -369,6 +369,7 @@
 					"@executable_path/Frameworks",
 				);
 				DEVELOPMENT_TEAM = D9K4L9NH2Y;
+				CODE_SIGN_STYLE = Automatic;
 				PRODUCT_BUNDLE_IDENTIFIER = com.anonymous.PromoteMe;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -549,6 +550,7 @@
 					"@executable_path/Frameworks",
 				);
 				DEVELOPMENT_TEAM = D9K4L9NH2Y;
+				CODE_SIGN_STYLE = Automatic;
 				PRODUCT_BUNDLE_IDENTIFIER = com.anonymous.PromoteMe;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -572,6 +574,7 @@
 					"@executable_path/Frameworks",
 				);
 				DEVELOPMENT_TEAM = D9K4L9NH2Y;
+				CODE_SIGN_STYLE = Automatic;
 				PRODUCT_BUNDLE_IDENTIFIER = com.anonymous.PromoteMe;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";

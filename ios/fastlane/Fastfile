@@ -6,6 +6,9 @@ platform :ios do
     # Ensure we have the latest certificates and profiles
     # match(type: "appstore", readonly: is_ci) 
 
+    # Enable automatic code signing
+    automatic_code_signing(use_automatic_signing: true)
+
     # Create API Key from environment variables
     api_key = app_store_connect_api_key(
       key_id: ENV['APP_STORE_CONNECT_API_KEY_KEY_ID'],
@@ -16,7 +19,16 @@ platform :ios do
     )
 
     # Build the application
-    build_app(workspace: "Runner.xcworkspace", scheme: "Runner")
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.anonymous.PromoteMe" => "Automatic"
+        }
+      }
+    )
 
     # Upload to TestFlight
     upload_to_testflight(

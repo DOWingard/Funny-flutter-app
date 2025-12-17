@@ -7,13 +7,26 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
-  await MobileAds.instance.initialize();
+  
+  try {
+    await dotenv.load(fileName: ".env");
+    // Don't await AdMob init to prevent black screen if it hangs
+    MobileAds.instance.initialize();
 
-  // Preload tap sound so it plays instantly
-  await FlameAudio.audioCache.load('tap.wav');
-
-  runApp(const GameWrapper());
+    // Preload tap sound (non-blocking)
+    FlameAudio.audioCache.load('tap.wav').catchError((e) => debugPrint('Audio load failed: $e'));
+    
+    runApp(const GameWrapper());
+  } catch (e, stack) {
+    debugPrint('Initialization failed: $e\n$stack');
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text('Initialization Failed:\n$e', textAlign: TextAlign.center),
+        ),
+      ),
+    ));
+  }
 }
 
 class GameWrapper extends StatefulWidget {

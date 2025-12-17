@@ -18,12 +18,17 @@ platform :ios do
       in_house: false
     )
 
+    # Write the key content to a temporary .p8 file for xcodebuild
+    key_id = ENV['APP_STORE_CONNECT_API_KEY_KEY_ID']
+    p8_path = File.absolute_path("./AuthKey_#{key_id}.p8")
+    File.write(p8_path, ENV['APP_STORE_CONNECT_API_KEY_CONTENT'])
+
     # Build the application
     build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates -authenticationKeyID #{ENV['APP_STORE_CONNECT_API_KEY_KEY_ID']} -authenticationKeyIssuerID #{ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID']} -authenticationKeyPath #{lane_context[Fastlane::Actions::SharedValues::APP_STORE_CONNECT_API_KEY_PATH]}"
+      xcargs: "-allowProvisioningUpdates -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID']} -authenticationKeyPath #{p8_path}"
     )
 
     # Upload to TestFlight

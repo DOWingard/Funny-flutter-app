@@ -16,16 +16,20 @@ class SideScrollerGame extends FlameGame with TapDetector {
   Future<void> onLoad() async {
     await super.onLoad();
     
-    // Add a parallax background
-    add(await ParallaxComponent.load(
-      [
-        ParallaxImageData('skyline/back.png'),
-        ParallaxImageData('skyline/buildings.png'),
-        ParallaxImageData('skyline/front.png'),
-      ],
-      baseVelocity: Vector2(20, 0),
-      velocityMultiplierDelta: Vector2(1.8, 1.0),
-    ));
+    try {
+      // Add a parallax background
+      add(await ParallaxComponent.load(
+        [
+          ParallaxImageData('skyline/back.png'),
+          ParallaxImageData('skyline/buildings.png'),
+          ParallaxImageData('skyline/front.png'),
+        ],
+        baseVelocity: Vector2(20, 0),
+        velocityMultiplierDelta: Vector2(1.8, 1.0),
+      ));
+    } catch (e) {
+      debugPrint('Parallax load failed: $e');
+    }
 
     add(TextComponent(
       text: 'Game Loaded!', 

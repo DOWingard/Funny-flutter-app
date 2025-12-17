@@ -23,7 +23,7 @@ jobs:
         run: flutter pub get
 
       - name: Pre-build Flutter
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign -t lib/youcantcopymymain.dart
 
       - name: Setup Ruby (for Fastlane)
         uses: ruby/setup-ruby@v1

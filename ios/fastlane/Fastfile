@@ -23,7 +23,7 @@ platform :ios do
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates -authenticationKeyID #{ENV['APP_STORE_CONNECT_API_KEY_KEY_ID']} -authenticationKeyIssuerID #{ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID']} -authenticationKeyPath #{LaneContext[SharedValues::APP_STORE_CONNECT_API_KEY_PATH]}"
+      xcargs: "-allowProvisioningUpdates -authenticationKeyID #{ENV['APP_STORE_CONNECT_API_KEY_KEY_ID']} -authenticationKeyIssuerID #{ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID']} -authenticationKeyPath #{lane_context[Fastlane::Actions::SharedValues::APP_STORE_CONNECT_API_KEY_PATH]}"
     )
 
     # Upload to TestFlight

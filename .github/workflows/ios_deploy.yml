@@ -30,8 +30,8 @@ jobs:
 
       - name: Install Fastlane
         run: |
-          gem install bundler
-          bundle install
+          gem install bundler:2.5.22
+          bundle _2.5.22_ install
         working-directory: ios
 
       - name: Build and Deploy
